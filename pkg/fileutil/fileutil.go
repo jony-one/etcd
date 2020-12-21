@@ -20,6 +20,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
 const (
@@ -45,9 +47,11 @@ func TouchDirAll(dir string) error {
 	// If path is already a directory, MkdirAll does nothing and returns nil, so,
 	// first check if dir exist with an expected permission mode.
 	if Exist(dir) {
-		err := CheckDirPermission(dir, PrivateDirMode)
-		if err != nil {
-			return err
+		if !strings.Contains(strings.ToLower(runtime.GOOS), "windows") {
+			err := CheckDirPermission(dir, PrivateDirMode)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		err := os.MkdirAll(dir, PrivateDirMode)
