@@ -23,10 +23,10 @@ import (
 	"go.etcd.io/etcd/v3/raft/raftpb"
 )
 
-// Handler for a http based key-value store backed by raft
+// Handler for a http based key-value store backed by raft 由 Raft 支持基于 HTTP 的 KV 存储处理程序
 type httpKVAPI struct {
 	store       *kvstore
-	confChangeC chan<- raftpb.ConfChange
+	confChangeC chan<- raftpb.ConfChange // 这里在入参的地方将状态机kv和配置变更confChangeC传递进了回调函数，以便能利用其中的通信管道等
 }
 
 func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +40,7 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed on PUT", http.StatusBadRequest)
 			return
 		}
-
+		// 将请求传递至 raftNode 组件，最终会传递到底层的 raft 核心协议模块
 		h.store.Propose(key, string(v))
 
 		// Optimistic-- no waiting for ack from raft. Value is not yet

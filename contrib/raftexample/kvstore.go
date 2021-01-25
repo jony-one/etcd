@@ -24,12 +24,12 @@ import (
 	"go.etcd.io/etcd/v3/etcdserver/api/snap"
 )
 
-// a key-value store backed by raft
+// a key-value store backed by raft  Raft 支持的KV存储
 type kvstore struct {
-	proposeC    chan<- string // channel for proposing updates
+	proposeC    chan<- string // channel for proposing updates 应用与底层Raft核心库之间的通信channel，当用户向应用通过 http 发送更新请求时，应用会将此请求通过channel传递给底层的Raft库
 	mu          sync.RWMutex
-	kvStore     map[string]string // current committed key-value pairs
-	snapshotter *snap.Snapshotter
+	kvStore     map[string]string // current committed key-value pairs。这里是 map，kv 结构的内存存储，即对应应用的状态机。
+	snapshotter *snap.Snapshotter // 由应用管理的快照snapshot接口
 }
 
 type kv struct {
@@ -55,7 +55,7 @@ func (s *kvstore) Lookup(key string) (string, bool) {
 
 func (s *kvstore) Propose(k string, v string) {
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
+	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil { // 编码后，传递至 raftNode
 		log.Fatal(err)
 	}
 	s.proposeC <- buf.String()
@@ -74,12 +74,12 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 				log.Panic(err)
 			}
 			log.Printf("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
-			if err := s.recoverFromSnapshot(snapshot.Data); err != nil {
+			if err := s.recoverFromSnapshot(snapshot.Data); err != nil { // 将之前某时刻快照重新设置为状态机目前的状态
 				log.Panic(err)
 			}
 			continue
 		}
-
+		// 先对数据解码
 		var dataKv kv
 		dec := gob.NewDecoder(bytes.NewBufferString(*data))
 		if err := dec.Decode(&dataKv); err != nil {
