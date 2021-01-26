@@ -283,7 +283,7 @@ type EtcdServer struct {
 // NewServer creates a new EtcdServer from the supplied configuration. The
 // configuration is considered static for the lifetime of the EtcdServer.
 func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
-	st := v2store.New(StoreClusterPrefix, StoreKeysPrefix)
+	st := v2store.New(StoreClusterPrefix, StoreKeysPrefix) // New创建一个存储，其中给定的名称空间将被创建为初始目录。
 
 	var (
 		w  *wal.WAL
@@ -293,7 +293,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		cl *membership.RaftCluster
 	)
 
-	if cfg.MaxRequestBytes > recommendedMaxRequestBytes {
+	if cfg.MaxRequestBytes > recommendedMaxRequestBytes { // 如果大于推荐最大请求字节数，打日志
 		cfg.Logger.Warn(
 			"exceeded recommended request limit",
 			zap.Uint("max-request-bytes", cfg.MaxRequestBytes),
@@ -303,24 +303,24 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		)
 	}
 
-	if terr := fileutil.TouchDirAll(cfg.DataDir); terr != nil {
+	if terr := fileutil.TouchDirAll(cfg.DataDir); terr != nil { // 生成 data 文件目录
 		return nil, fmt.Errorf("cannot access data directory: %v", terr)
 	}
 
 	haveWAL := wal.Exist(cfg.WALDir())
 
-	if err = fileutil.TouchDirAll(cfg.SnapDir()); err != nil {
+	if err = fileutil.TouchDirAll(cfg.SnapDir()); err != nil { // 生成 WAL 文件目录
 		cfg.Logger.Fatal(
 			"failed to create snapshot directory",
 			zap.String("path", cfg.SnapDir()),
 			zap.Error(err),
 		)
 	}
-	ss := snap.New(cfg.Logger, cfg.SnapDir())
+	ss := snap.New(cfg.Logger, cfg.SnapDir()) // 创建快照目录
 
-	bepath := cfg.backendPath()
+	bepath := cfg.backendPath() // 备份路径
 	beExist := fileutil.Exist(bepath)
-	be := openBackend(cfg)
+	be := openBackend(cfg) // 配置数据库后端
 
 	defer func() {
 		if err != nil {
@@ -328,7 +328,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		}
 	}()
 
-	prt, err := rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.peerDialTimeout())
+	prt, err := rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.peerDialTimeout()) // 获取用于将请求发送到远程对等方的rafthttp侦听器。
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		if err = cfg.VerifyBootstrap(); err != nil {
 			return nil, err
 		}
-		cl, err = membership.NewClusterFromURLsMap(cfg.Logger, cfg.InitialClusterToken, cfg.InitialPeerURLsMap)
+		cl, err = membership.NewClusterFromURLsMap(cfg.Logger, cfg.InitialClusterToken, cfg.InitialPeerURLsMap) // NewClusterFromURLsMap使用提供的网址映射创建新的集群。
 		if err != nil {
 			return nil, err
 		}
@@ -376,7 +376,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		if isMemberBootstrapped(cfg.Logger, cl, cfg.Name, prt, cfg.bootstrapTimeout()) {
 			return nil, fmt.Errorf("member %s has already been bootstrapped", m.ID)
 		}
-		if cfg.ShouldDiscover() {
+		if cfg.ShouldDiscover() { // 做集群服务发现，通过指定 URL
 			var str string
 			str, err = v2discovery.JoinCluster(cfg.Logger, cfg.DiscoveryURL, cfg.DiscoveryProxy, m.ID, cfg.InitialPeerURLsMap.String())
 			if err != nil {
@@ -467,7 +467,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 	sstats := stats.NewServerStats(cfg.Name, id.String())
 	lstats := stats.NewLeaderStats(cfg.Logger, id.String())
 
-	heartbeat := time.Duration(cfg.TickMs) * time.Millisecond
+	heartbeat := time.Duration(cfg.TickMs) * time.Millisecond // 心跳默认 100 ms
 	srv = &EtcdServer{
 		readych:     make(chan struct{}),
 		Cfg:         cfg,

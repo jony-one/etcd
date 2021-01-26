@@ -22,7 +22,7 @@ import (
 // toConfChangeSingle translates a conf state into 1) a slice of operations creating
 // first the config that will become the outgoing one, and then the incoming one, and
 // b) another slice that, when applied to the config resulted from 1), represents the
-// ConfState.
+// ConfState.toConfChangeSingle将conf状态转换为1）一片操作的切片，首先创建将成为传出配置的配置，然后再成为传入的配置，以及b）当应用于由1）生成的配置时代表ConfState的另一个切片。
 func toConfChangeSingle(cs pb.ConfState) (out []pb.ConfChangeSingle, in []pb.ConfChangeSingle) {
 	// Example to follow along this code:
 	// voters=(1 2 3) learners=(5) outgoing=(1 2 4 6) learners_next=(4)
@@ -110,12 +110,12 @@ func chain(chg Changer, ops ...func(Changer) (tracker.Config, tracker.ProgressMa
 
 // Restore takes a Changer (which must represent an empty configuration), and
 // runs a sequence of changes enacting the configuration described in the
-// ConfState.
+// ConfState.还原将使用Changer（必须表示一个空配置），并运行一系列更改以实施ConfState中描述的配置。
 //
 // TODO(tbg) it's silly that this takes a Changer. Unravel this by making sure
 // the Changer only needs a ProgressMap (not a whole Tracker) at which point
 // this can just take LastIndex and MaxInflight directly instead and cook up
-// the results from that alone.
+// the results from that alone.傻傻的带了一个转换器。 通过确保Changer仅需要一个ProgressMap（而不是整个Tracker）来解开此问题，这时，它可以直接直接使用LastIndex和MaxInflight并单独修改结果。
 func Restore(chg Changer, cs pb.ConfState) (tracker.Config, tracker.ProgressMap, error) {
 	outgoing, incoming := toConfChangeSingle(cs)
 

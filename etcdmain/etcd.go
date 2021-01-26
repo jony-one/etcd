@@ -50,10 +50,11 @@ var (
 )
 
 func startEtcdOrProxyV2() {
-	grpc.EnableTracing = false
+	grpc.EnableTracing = true
+	//grpc.EnableTracing = false
 
-	cfg := newConfig()
-	defaultInitialCluster := cfg.ec.InitialCluster
+	cfg := newConfig() // 构建配置信息
+	defaultInitialCluster := cfg.ec.InitialCluster //默认集群信息
 
 	err := cfg.parse(os.Args[1:])
 	lg := cfg.ec.GetLogger()
@@ -73,7 +74,8 @@ func startEtcdOrProxyV2() {
 		}
 	}()
 
-	defaultHost, dhErr := (&cfg.ec).UpdateDefaultClusterFromName(defaultInitialCluster)
+
+	defaultHost, dhErr := (&cfg.ec).UpdateDefaultClusterFromName(defaultInitialCluster) // 监听默认主机（如果可用）更新群集发布URL
 	if defaultHost != "" {
 		lg.Info(
 			"detected default host for advertise",
@@ -95,7 +97,7 @@ func startEtcdOrProxyV2() {
 	var stopped <-chan struct{}
 	var errc <-chan error
 
-	which := identifyDataDirOrDie(cfg.ec.GetLogger(), cfg.ec.Dir)
+	which := identifyDataDirOrDie(cfg.ec.GetLogger(), cfg.ec.Dir) //获取数据目录的类型
 	if which != dirEmpty {
 		lg.Info(
 			"server has been already initialized",
@@ -103,9 +105,9 @@ func startEtcdOrProxyV2() {
 			zap.String("dir-type", string(which)),
 		)
 		switch which {
-		case dirMember:
+		case dirMember: // 如果是 member 类型就启动 Etcd
 			stopped, errc, err = startEtcd(&cfg.ec)
-		case dirProxy:
+		case dirProxy: // 如果是 proxy 类型就启动 proxy
 			err = startProxy(cfg)
 		default:
 			lg.Panic(
@@ -114,7 +116,7 @@ func startEtcdOrProxyV2() {
 			)
 		}
 	} else {
-		shouldProxy := cfg.isProxy()
+		shouldProxy := cfg.isProxy() // 如果是空目录则需要创建目录类型
 		if !shouldProxy {
 			stopped, errc, err = startEtcd(&cfg.ec)
 			if derr, ok := err.(*etcdserver.DiscoveryError); ok && derr.Err == v2discovery.ErrFullCluster {

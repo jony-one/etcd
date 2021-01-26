@@ -623,7 +623,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	}
 
 	r.Header = &pb.RequestHeader{
-		ID: s.reqIDGen.Next(),
+		ID: s.reqIDGen.Next(),// 生成一个唯一ID
 	}
 
 	authInfo, err := s.AuthInfoFromCtx(ctx)
@@ -654,7 +654,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	defer cancel()
 
 	start := time.Now()
-	err = s.r.Propose(cctx, data)
+	err = s.r.Propose(cctx, data) // 提议提交数据
 	if err != nil {
 		proposalsFailed.Inc()
 		s.w.Trigger(id, nil) // GC wait

@@ -40,14 +40,14 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed on PUT", http.StatusBadRequest)
 			return
 		}
-		// 将请求传递至 raftNode 组件，最终会传递到底层的 raft 核心协议模块
+		// 将请求传递至 raftNode 组件，最终会传递到底层的 raft 核心协议模块,Propose 写入数据
 		h.store.Propose(key, string(v))
 
 		// Optimistic-- no waiting for ack from raft. Value is not yet
 		// committed so a subsequent GET on the key may return old value
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == "GET":
-		if v, ok := h.store.Lookup(key); ok {
+		if v, ok := h.store.Lookup(key); ok { // Lookup 查看数据
 			w.Write([]byte(v))
 		} else {
 			http.Error(w, "Failed to GET", http.StatusNotFound)
@@ -72,7 +72,7 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			NodeID:  nodeId,
 			Context: url,
 		}
-		h.confChangeC <- cc
+		h.confChangeC <- cc // 通知添加节点
 
 		// As above, optimistic that raft will apply the conf change
 		w.WriteHeader(http.StatusNoContent)
@@ -88,7 +88,7 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Type:   raftpb.ConfChangeRemoveNode,
 			NodeID: nodeId,
 		}
-		h.confChangeC <- cc
+		h.confChangeC <- cc // 通知删除节点
 
 		// As above, optimistic that raft will apply the conf change
 		w.WriteHeader(http.StatusNoContent)
@@ -103,20 +103,20 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveHttpKVAPI starts a key-value server with a GET/PUT API and listens.
 func serveHttpKVAPI(kv *kvstore, port int, confChangeC chan<- raftpb.ConfChange, errorC <-chan error) {
-	srv := http.Server{
+	srv := http.Server{ // 初始化 HTTP Server
 		Addr: ":" + strconv.Itoa(port),
 		Handler: &httpKVAPI{
 			store:       kv,
 			confChangeC: confChangeC,
 		},
 	}
-	go func() {
+	go func() { // 开启一个协程，启动服务
 		if err := srv.ListenAndServe(); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
-	// exit when raft goes down
+	// exit when raft goes down // 检测到错误就退出
 	if err, ok := <-errorC; ok {
 		log.Fatal(err)
 	}

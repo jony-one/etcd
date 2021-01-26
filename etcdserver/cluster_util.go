@@ -33,7 +33,7 @@ import (
 )
 
 // isMemberBootstrapped tries to check if the given member has been bootstrapped
-// in the given cluster.
+// in the given cluster.isMemberBootstrapped尝试检查给定成员是否已在给定群集中被启动。
 func isMemberBootstrapped(lg *zap.Logger, cl *membership.RaftCluster, member string, rt http.RoundTripper, timeout time.Duration) bool {
 	rcl, err := getClusterFromRemotePeers(lg, getRemotePeerURLs(cl, member), timeout, false, rt)
 	if err != nil {

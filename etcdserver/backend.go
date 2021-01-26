@@ -63,7 +63,7 @@ func openSnapshotBackend(cfg ServerConfig, ss *snap.Snapshotter, snapshot raftpb
 	return openBackend(cfg), nil
 }
 
-// openBackend returns a backend using the current etcd db.
+// openBackend returns a backend using the current etcd db.openBackend使用当前的etcd数据库返回一个后端。
 func openBackend(cfg ServerConfig) backend.Backend {
 	fn := cfg.backendPath()
 

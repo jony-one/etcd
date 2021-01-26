@@ -43,7 +43,7 @@ func NewListener(u url.URL, tlsinfo *transport.TLSInfo) (net.Listener, error) {
 }
 
 // NewRoundTripper returns a roundTripper used to send requests
-// to rafthttp listener of remote peers.
+// to rafthttp listener of remote peers. 返回一个roundTripper，用于将请求发送到远程对等方的rafthttp侦听器。
 func NewRoundTripper(tlsInfo transport.TLSInfo, dialTimeout time.Duration) (http.RoundTripper, error) {
 	// It uses timeout transport to pair with remote timeout listeners.
 	// It sets no read/write timeout, because message in requests may

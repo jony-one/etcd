@@ -399,14 +399,14 @@ func (r *raftNode) advanceTicks(ticks int) {
 
 func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id types.ID, n raft.Node, s *raft.MemoryStorage, w *wal.WAL) {
 	var err error
-	member := cl.MemberByName(cfg.Name)
+	member := cl.MemberByName(cfg.Name) // 一个具有给定名称的Member，默认 default
 	metadata := pbutil.MustMarshal(
 		&pb.Metadata{
 			NodeID:    uint64(member.ID),
 			ClusterID: uint64(cl.ID()),
 		},
 	)
-	if w, err = wal.Create(cfg.Logger, cfg.WALDir(), metadata); err != nil {
+	if w, err = wal.Create(cfg.Logger, cfg.WALDir(), metadata); err != nil { // TODO Review
 		cfg.Logger.Panic("failed to create WAL", zap.Error(err))
 	}
 	peers := make([]raft.Peer, len(ids))
@@ -424,7 +424,7 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 		zap.String("local-member-id", id.String()),
 		zap.String("cluster-id", cl.ID().String()),
 	)
-	s = raft.NewMemoryStorage()
+	s = raft.NewMemoryStorage() // 构建内存存储结构
 	c := &raft.Config{
 		ID:              uint64(id),
 		ElectionTick:    cfg.ElectionTicks,

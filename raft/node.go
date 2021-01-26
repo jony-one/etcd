@@ -17,6 +17,7 @@ package raft
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	pb "go.etcd.io/etcd/v3/raft/raftpb"
 )
@@ -49,40 +50,40 @@ func (a *SoftState) equal(b *SoftState) bool {
 // Ready encapsulates the entries and messages that are ready to read,
 // be saved to stable storage, committed or sent to other peers.
 // All fields in Ready are read-only.
-type Ready struct {
+type Ready struct { // Ready 结构包装了事务日志，以及需要发送给其它 peer 的消息指令，这些字段都是只读的，且有些必须进行持久化，或者已经可以提交应用。
 	// The current volatile state of a Node.
 	// SoftState will be nil if there is no update.
 	// It is not required to consume or store SoftState.
-	*SoftState
+	*SoftState // 包含了内存中的状态，即瞬时状态数据
 
 	// The current state of a Node to be saved to stable storage BEFORE
 	// Messages are sent.
 	// HardState will be equal to empty state if there is no update.
-	pb.HardState
+	pb.HardState  // 包含了持久化的状态，即在消息发送给其它节点前需要保存到磁盘
 
 	// ReadStates can be used for node to serve linearizable read requests locally
 	// when its applied index is greater than the index in ReadState.
 	// Note that the readState will be returned when raft receives msgReadIndex.
 	// The returned is only valid for the request that requested to read.
-	ReadStates []ReadState
+	ReadStates []ReadState  // 用于节点提供本地的线性化读请求，但其条件是节点的 appliedIndex 必须要大于 ReadState 中的 index，这容易理解，否则会造成客户端的读的数据的不一致
 
 	// Entries specifies entries to be saved to stable storage BEFORE
 	// Messages are sent.
-	Entries []pb.Entry
+	Entries []pb.Entry  // 表示在发送其它节点之前需要被持久化的状态数据
 
 	// Snapshot specifies the snapshot to be saved to stable storage.
-	Snapshot pb.Snapshot
+	Snapshot pb.Snapshot  // 与快照相关，指定了可以持久化的 snapshot 数据
 
 	// CommittedEntries specifies entries to be committed to a
 	// store/state-machine. These have previously been committed to stable
 	// store.
-	CommittedEntries []pb.Entry
+	CommittedEntries []pb.Entry // 可以被提交应用到状态机的状态数据
 
 	// Messages specifies outbound messages to be sent AFTER Entries are
 	// committed to stable storage.
 	// If it contains a MsgSnap message, the application MUST report back to raft
 	// when the snapshot has been received or has failed by calling ReportSnapshot.
-	Messages []pb.Message
+	Messages []pb.Message // 当 Entries 被持久化后，需要转发到其它节点的消息
 
 	// MustSync indicates whether the HardState and Entries must be synchronously
 	// written to disk or if an asynchronous write is permissible.
@@ -211,7 +212,7 @@ type Peer struct {
 
 // StartNode returns a new Node given configuration and a list of raft peers.
 // It appends a ConfChangeAddNode entry for each given peer to the initial log.
-//
+// StartNode返回给定配置的新Node和 raft peer 列表。 它将每个给定对等项的ConfChangeAddNode条目附加到初始日志。
 // Peers must not be zero length; call RestartNode in that case.
 func StartNode(c *Config, peers []Peer) Node {
 	if len(peers) == 0 {
@@ -453,9 +454,9 @@ func (n *node) stepWait(ctx context.Context, m pb.Message) error {
 }
 
 // Step advances the state machine using msgs. The ctx.Err() will be returned,
-// if any.
+// if any. 步骤使用msgs推进状态机。 ctx.Err（）将被返回（如果有）。
 func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) error {
-	if m.Type != pb.MsgProp {
+	if m.Type != pb.MsgProp { // 不等于 MsgProp 类型
 		select {
 		case n.recvc <- m:
 			return nil
@@ -466,6 +467,8 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 		}
 	}
 	ch := n.propc
+	a := m.String()
+	fmt.Println(a)
 	pm := msgWithResult{m: m}
 	if wait {
 		pm.result = make(chan error, 1)

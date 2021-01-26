@@ -81,7 +81,7 @@ type ConfigChangeContext struct {
 }
 
 // NewClusterFromURLsMap creates a new raft cluster using provided urls map. Currently, it does not support creating
-// cluster with raft learner member.
+// cluster with raft learner member.NewClusterFromURLsMap使用提供的网址映射创建新的集群。
 func NewClusterFromURLsMap(lg *zap.Logger, token string, urlsmap types.URLsMap) (*RaftCluster, error) {
 	c := NewCluster(lg, token)
 	for name, urls := range urlsmap {
@@ -153,7 +153,7 @@ func (c *RaftCluster) VotingMembers() []*Member {
 }
 
 // MemberByName returns a Member with the given name if exists.
-// If more than one member has the given name, it will panic.
+// If more than one member has the given name, it will panic. 返回一个具有给定名称的Member（如果存在）。如果有多个具有给定名称的成员，它将抛出异常。
 func (c *RaftCluster) MemberByName(name string) *Member {
 	c.Lock()
 	defer c.Unlock()

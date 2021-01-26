@@ -16,21 +16,34 @@
 Package raft sends and receives messages in the Protocol Buffer format
 defined in the raftpb package.
 
+raft 以协议缓冲区格式发送和接收消息
+在raftpb软件包中定义。
+
 Raft is a protocol with which a cluster of nodes can maintain a replicated state machine.
 The state machine is kept in sync through the use of a replicated log.
+
+Raft是一种协议，通过它，节点集群可以维护一个复制的状态机。
+状态机通过使用复制的日志保持同步。
+
 For more details on Raft, see "In Search of an Understandable Consensus Algorithm"
 (https://raft.github.io/raft.pdf) by Diego Ongaro and John Ousterhout.
+
 
 A simple example application, _raftexample_, is also available to help illustrate
 how to use this package in practice:
 https://github.com/etcd-io/etcd/tree/master/contrib/raftexample
 
 Usage
+用法
 
 The primary object in raft is a Node. You either start a Node from scratch
 using raft.StartNode or start a Node from some initial state using raft.RestartNode.
 
+raft中的主要对象是节点。要么从头开始创建节点
+使用 raft 开始节点或者使用raft.RestartNode文件.
+
 To start a node from scratch:
+从头开始节点：
 
   storage := raft.NewMemoryStorage()
   c := &Config{
@@ -44,6 +57,7 @@ To start a node from scratch:
   n := raft.StartNode(c, []raft.Peer{{ID: 0x02}, {ID: 0x03}})
 
 To restart a node from previous state:
+要从以前的状态重新启动节点，请执行以下操作：
 
   storage := raft.NewMemoryStorage()
 
@@ -67,14 +81,22 @@ To restart a node from previous state:
   n := raft.RestartNode(c)
 
 Now that you are holding onto a Node you have a few responsibilities:
+现在您已经拥有一个节点，您将承担以下几项责任：
 
 First, you must read from the Node.Ready() channel and process the updates
 it contains. These steps may be performed in parallel, except as noted in step
+首先，您必须从Node.Ready（）通道读取并处理更新
+它包含。这些步骤可以并行执行，除非步骤中另有说明
+
 2.
 
 1. Write HardState, Entries, and Snapshot to persistent storage if they are
 not empty. Note that when writing an Entry with Index i, any
 previously-persisted entries with Index >= i must be discarded.
+
+1.将HardState，Entries和Snapshot写入持久性存储（如果它们是
+不是空的。请注意，使用索引i编写条目时，任何
+必须舍弃索引> = i的先前持久的条目。
 
 2. Send all Messages to the nodes named in the To field. It is important that
 no messages be sent until the latest HardState has been persisted to disk,
@@ -85,10 +107,25 @@ followers (as explained at section 10.2.1 in Raft thesis). If any Message has ty
 MsgSnap, call Node.ReportSnapshot() after it has been sent (these messages may be
 large).
 
+2.将所有消息发送到“收件人”字段中命名的节点。重要的是
+在将最新的HardState持久化到磁盘之前，不会发送任何消息，
+以及任何以前的“就绪”批次编写的所有条目（消息可能会在
+来自同一批次的条目将被保留）。为了减少I / O延迟，
+可以应用优化使领导者与其磁盘并行地写入磁盘
+追随者（如Raft论文中的10.2.1节所述）。如果任何消息具有类型
+MsgSnap，发送后调用Node.ReportSnapshot（）（这些消息可能是
+大）。
+
 Note: Marshalling messages is not thread-safe; it is important that you
 make sure that no new entries are persisted while marshalling.
 The easiest way to achieve this is to serialize the messages directly inside
 your main raft loop.
+
+注意：编组消息不是线程安全的；重要的是你
+确保在编组时不保留任何新条目。
+最简单的方法是直接在内部序列化消息
+你的主要筏圈。
+
 
 3. Apply Snapshot (if any) and CommittedEntries to the state machine.
 If any committed Entry has Type EntryConfChange, call Node.ApplyConfChange()
@@ -98,16 +135,35 @@ by setting the NodeID field to zero before calling ApplyConfChange
 must be based solely on the state machine and not external information such as
 the observed health of the node).
 
+3.将快照（如果有）和CommittedEntries应用于状态机。
+如果任何已提交的条目的类型为EntryConfChange，则调用Node.ApplyConfChange（）
+将其应用于节点。此时可能会取消配置更改
+通过在调用ApplyConfChange之前将NodeID字段设置为零
+（但是ApplyConfChange必须以一种或另一种方式调用，并决定取消
+必须仅基于状态机，而不是外部信息，例如
+观察到的节点运行状况）。
+
 4. Call Node.Advance() to signal readiness for the next batch of updates.
 This may be done at any time after step 1, although all updates must be processed
 in the order they were returned by Ready.
+
+4.调用Node.Advance（）表示已准备好进行下一批更新。
+尽管必须处理所有更新，但这可以在步骤1之后的任何时间完成。
+按Ready退回的顺序。
 
 Second, all persisted log entries must be made available via an
 implementation of the Storage interface. The provided MemoryStorage
 type can be used for this (if you repopulate its state upon a
 restart), or you can supply your own disk-backed implementation.
 
+其次，所有持久化的日志条目必须通过
+存储接口的实现。提供的MemoryStorage
+类型可用于此目的（如果您在
+重新启动），也可以提供自己的磁盘支持的实施。
+
 Third, when you receive a message from another node, pass it to Node.Step:
+
+第三，当您从另一个节点收到消息时，将其传递给Node.Step：
 
 	func recvRaftRPC(ctx context.Context, m raftpb.Message) {
 		n.Step(ctx, m)
@@ -118,7 +174,14 @@ via a time.Ticker). Raft has two important timeouts: heartbeat and the
 election timeout. However, internally to the raft package time is
 represented by an abstract "tick".
 
+最后，您需要定期调用Node.Tick（）（可能
+通过时间。Raft 有两个重要的超时：心跳和
+选举超时。但是，内部到 Raft 包装的时间是
+用抽象的“刻度”表示。
+
 The total state machine handling loop will look something like this:
+
+总的状态机处理循环将如下所示：
 
   for {
     select {
@@ -146,6 +209,9 @@ The total state machine handling loop will look something like this:
 
 To propose changes to the state machine from your node take your application
 data, serialize it into a byte slice and call:
+
+要从您的节点提出对状态机的更改建议，请使用您的应用程序
+数据，将其序列化为字节片并调用：
 
 	n.Propose(ctx, data)
 

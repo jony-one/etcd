@@ -38,7 +38,7 @@ type RawNode struct {
 }
 
 // NewRawNode instantiates a RawNode from the given configuration.
-//
+// NewRawNode从给定的配置实例化RawNode。
 // See Bootstrap() for bootstrapping an initial state; this replaces the former
 // 'peers' argument to this method (with identical behavior). However, It is
 // recommended that instead of calling Bootstrap, applications bootstrap their

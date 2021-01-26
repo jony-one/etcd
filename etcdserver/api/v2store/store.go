@@ -83,7 +83,7 @@ type store struct {
 	readonlySet    types.Set
 }
 
-// New creates a store where the given namespaces will be created as initial directories.
+// New creates a store where the given namespaces will be created as initial directories.New创建一个存储，其中给定的名称空间将被创建为初始目录。
 func New(namespaces ...string) Store {
 	s := newStore(namespaces...)
 	s.clock = clockwork.NewRealClock()

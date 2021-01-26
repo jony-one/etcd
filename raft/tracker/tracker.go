@@ -187,7 +187,7 @@ func insertionSort(sl []uint64) {
 	}
 }
 
-// Visit invokes the supplied closure for all tracked progresses in stable order.
+// Visit invokes the supplied closure for all tracked progresses in stable order.访问以稳定的顺序为所有跟踪的进度调用提供的关闭。
 func (p *ProgressTracker) Visit(f func(id uint64, pr *Progress)) {
 	n := len(p.Progress)
 	// We need to sort the IDs and don't want to allocate since this is hot code.
@@ -224,7 +224,7 @@ func (p *ProgressTracker) QuorumActive() bool {
 	return p.Voters.VoteResult(votes) == quorum.VoteWon
 }
 
-// VoterNodes returns a sorted slice of voters.
+// VoterNodes returns a sorted slice of voters. 返回所有 Candidate
 func (p *ProgressTracker) VoterNodes() []uint64 {
 	m := p.Voters.IDs()
 	nodes := make([]uint64, 0, len(m))

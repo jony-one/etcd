@@ -37,16 +37,16 @@ type kv struct {
 	Val string
 }
 
-func newKVStore(snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore {
-	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter}
+func newKVStore(snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore { // 初始化
+	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter} // 初始化
 	// replay log into key-value map
-	s.readCommits(commitC, errorC)
+	s.readCommits(commitC, errorC) //
 	// read commits from raft into kvStore map until error
 	go s.readCommits(commitC, errorC)
 	return s
 }
 
-func (s *kvstore) Lookup(key string) (string, bool) {
+func (s *kvstore) Lookup(key string) (string, bool) { // 加锁获取 value
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	v, ok := s.kvStore[key]
@@ -58,7 +58,7 @@ func (s *kvstore) Propose(k string, v string) {
 	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil { // 编码后，传递至 raftNode
 		log.Fatal(err)
 	}
-	s.proposeC <- buf.String()
+	s.proposeC <- buf.String() // 发送信号
 }
 
 func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
@@ -99,7 +99,7 @@ func (s *kvstore) getSnapshot() ([]byte, error) {
 	defer s.mu.RUnlock()
 	return json.Marshal(s.kvStore)
 }
-
+// 从快照中恢复数据
 func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	var store map[string]string
 	if err := json.Unmarshal(snapshot, &store); err != nil {
@@ -107,6 +107,6 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.kvStore = store
+	s.kvStore = store // 存储
 	return nil
 }

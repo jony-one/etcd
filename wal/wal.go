@@ -95,7 +95,7 @@ type WAL struct {
 
 // Create creates a WAL ready for appending records. The given metadata is
 // recorded at the head of each WAL file, and can be retrieved with ReadAll
-// after the file is Open.
+// after the file is Open.Create创建一个准备附加记录的WAL。 给定的元数据记录在每个WAL文件的开头，可以在打开文件后使用ReadAll检索。
 func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 	if Exist(dirpath) {
 		return nil, os.ErrExist
@@ -105,9 +105,9 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		lg = zap.NewNop()
 	}
 
-	// keep temporary wal directory so WAL initialization appears atomic
+	// keep temporary wal directory so WAL initialization appears atomic。保留临时的wal目录，以便WAL初始化显示为原子
 	tmpdirpath := filepath.Clean(dirpath) + ".tmp"
-	if fileutil.Exist(tmpdirpath) {
+	if fileutil.Exist(tmpdirpath) { // 如果存在就删除调 tmp 文件
 		if err := os.RemoveAll(tmpdirpath); err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		return nil, err
 	}
 
-	p := filepath.Join(tmpdirpath, walName(0, 0))
+	p := filepath.Join(tmpdirpath, walName(0, 0)) // 创建 日志文件 0000000000000000-0000000000000000.wal
 	f, err := fileutil.LockFile(p, os.O_WRONLY|os.O_CREATE, fileutil.PrivateFileMode)
 	if err != nil {
 		lg.Warn(
@@ -140,7 +140,7 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		)
 		return nil, err
 	}
-	if err = fileutil.Preallocate(f.File, SegmentSizeBytes, true); err != nil {
+	if err = fileutil.Preallocate(f.File, SegmentSizeBytes, true); err != nil { // 预分配文件空间
 		lg.Warn(
 			"failed to preallocate an initial WAL file",
 			zap.String("path", p),
@@ -155,23 +155,23 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		dir:      dirpath,
 		metadata: metadata,
 	}
-	w.encoder, err = newFileEncoder(f.File, 0)
+	w.encoder, err = newFileEncoder(f.File, 0) // 新文件编码
 	if err != nil {
 		return nil, err
 	}
 	w.locks = append(w.locks, f)
-	if err = w.saveCrc(0); err != nil {
+	if err = w.saveCrc(0); err != nil { // 保存 crc
 		return nil, err
 	}
 	if err = w.encoder.encode(&walpb.Record{Type: metadataType, Data: metadata}); err != nil {
 		return nil, err
 	}
-	if err = w.SaveSnapshot(walpb.Snapshot{}); err != nil {
+	if err = w.SaveSnapshot(walpb.Snapshot{}); err != nil { // 保存快照
 		return nil, err
 	}
 
 	logDirPath := w.dir
-	if w, err = w.renameWAL(tmpdirpath); err != nil {
+	if w, err = w.renameWAL(tmpdirpath); err != nil { // 重命名 WAL　
 		lg.Warn(
 			"failed to rename the temporary WAL directory",
 			zap.String("tmp-dir-path", tmpdirpath),
@@ -188,7 +188,7 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (*WAL, error) {
 		}
 	}()
 
-	// directory was renamed; sync parent dir to persist rename
+	// directory was renamed; sync parent dir to persist rename，目录已重命名； 同步父目录以重命名
 	pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))
 	if perr != nil {
 		lg.Warn(
@@ -360,7 +360,7 @@ func selectWALFiles(lg *zap.Logger, dirpath string, snap walpb.Snapshot) ([]stri
 	if err != nil {
 		return nil, -1, err
 	}
-
+	// 搜索 WAL 索引
 	nameIndex, ok := searchIndex(lg, names, snap.Index)
 	if !ok || !isValidSeq(lg, names[nameIndex:]) {
 		err = ErrFileNotFound

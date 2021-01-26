@@ -613,9 +613,9 @@ func (r *raft) reset(term uint64) {
 	r.heartbeatElapsed = 0
 	r.resetRandomizedElectionTimeout()
 
-	r.abortLeaderTransfer()
+	r.abortLeaderTransfer() // 终止Leader 转让
 
-	r.prs.ResetVotes()
+	r.prs.ResetVotes() // 重置投票数量
 	r.prs.Visit(func(id uint64, pr *tracker.Progress) {
 		*pr = tracker.Progress{
 			Match:     0,
@@ -1331,7 +1331,7 @@ func stepFollower(r *raft, m pb.Message) error {
 	case pb.MsgHeartbeat:
 		r.electionElapsed = 0
 		r.lead = m.From
-		r.handleHeartbeat(m)
+		r.handleHeartbeat(m) // TODO 发送心跳
 	case pb.MsgSnap:
 		r.electionElapsed = 0
 		r.lead = m.From

@@ -114,7 +114,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		"configuring peer listeners",
 		zap.Strings("listen-peer-urls", e.cfg.getLPURLs()),
 	)
-	if e.Peers, err = configurePeerListeners(cfg); err != nil {
+	if e.Peers, err = configurePeerListeners(cfg); err != nil { // 配置点对点监听
 		return e, err
 	}
 
@@ -122,7 +122,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		"configuring client listeners",
 		zap.Strings("listen-client-urls", e.cfg.getLCURLs()),
 	)
-	if e.sctxs, err = configureClientListeners(cfg); err != nil {
+	if e.sctxs, err = configureClientListeners(cfg); err != nil { //  监听 2379 端口。2379 端口提供 HTTP API 服务，2380 端口和 peer 通信
 		return e, err
 	}
 
@@ -137,7 +137,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	memberInitialized := true
 	if !isMemberInitialized(cfg) {
 		memberInitialized = false
-		urlsmap, token, err = cfg.PeerURLsMapAndToken("etcd")
+		urlsmap, token, err = cfg.PeerURLsMapAndToken("etcd") // PeerURLsMapAndToken 设置用于引导或发现的初始对等URLsMap和群集令牌。
 		if err != nil {
 			return e, fmt.Errorf("error setting up initial cluster: %v", err)
 		}
@@ -452,7 +452,7 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 			}
 		}
 		peers[i] = &peerListener{close: func(context.Context) error { return nil }}
-		peers[i].Listener, err = rafthttp.NewListener(u, &cfg.PeerTLSInfo)
+		peers[i].Listener, err = rafthttp.NewListener(u, &cfg.PeerTLSInfo) //  监听 2380 端口。2379 端口提供 HTTP API 服务，2380 端口和 peer 通信
 		if err != nil {
 			return nil, err
 		}
@@ -524,7 +524,7 @@ func configureClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err erro
 	if err = cfg.ClientSelfCert(); err != nil {
 		cfg.logger.Fatal("failed to get client self-signed certs", zap.Error(err))
 	}
-	if cfg.EnablePprof {
+	if cfg.EnablePprof { // 是否启动性能监控
 		cfg.logger.Info("pprof is enabled", zap.String("path", debugutil.HTTPPrefixPProf))
 	}
 
